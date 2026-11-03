@@ -34,4 +34,12 @@ esp_err_t esp_loadcell_read(esp_loadcell_handle_t handle, int32_t *data_read);
 
 esp_err_t esp_loadcell_set_speed(esp_loadcell_handle_t handle, uint8_t speed);
 
+/**
+ * @brief Define o ganho do ADS1232 dinamicamente em tempo de execução.
+ * @param handle Handle da célula de carga.
+ * @param gain Valor do ganho desejado: 1, 2, 64 ou 128.
+ * @return esp_err_t ESP_OK em caso de sucesso, ou erro correspondente.
+ */
+esp_err_t esp_loadcell_set_gain(esp_loadcell_handle_t handle, uint32_t gain);
+
 #endif

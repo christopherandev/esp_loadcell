@@ -17,18 +17,35 @@ void app_main(void)
         .a0_io = 23,
         .speed = 0, // 1 --> 80Hz, 0 --> 10Hz
         .type = ADS1232,
-        .gain = 2};
-
+        .gain = 1};
 
     init_esp_loadcell(&esp_loadcell_config, &esp_loadcell_handle);
 
     esp_loadcell_set_speed(esp_loadcell_handle,0);
 
     int32_t value = 0;
+    int counter = 0;
+    uint32_t gains_to_test[] = {1, 2, 64, 128};
+    int gain_index = 0;
 
     esp_err_t r;
     while (1)
     {
         r = esp_loadcell_read(esp_loadcell_handle, &value);
+        if(r == ESP_OK)
+        {
+            counter++;
+            // A cada 5 leituras, altera o ganho dinamicamente para teste
+            if (counter >= 5)
+            {
+                counter = 0;
+                gain_index = (gain_index + 1) % 4;
+                uint32_t new_gain = gains_to_test[gain_index];
+                
+                printf("Alterando ganho do ADS1232 para: %lu\n", new_gain);
+                esp_loadcell_set_gain(esp_loadcell_handle, new_gain);
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(500));
     }
 }

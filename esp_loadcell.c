@@ -45,6 +45,58 @@ esp_err_t esp_loadcell_set_speed(esp_loadcell_handle_t handle, uint8_t speed)
     return ESP_OK;
 }
 
+// Função para ajustar dinamicamente o ganho do ADS1232
+esp_err_t esp_loadcell_set_gain(esp_loadcell_handle_t handle, uint32_t gain)
+{
+    if (handle == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (handle->type != ADS1232)
+    {
+        // O ganho por pinos físicos GAIN0/GAIN1 aplica-se ao ADS1232
+        return ESP_ERR_NOT_SUPPORTED;
+    }
+
+    int g0_level = 0;
+    int g1_level = 0;
+
+    // Mapeamento dos ganhos do ADS1232 conforme o datasheet:
+    // Gain 1:  GAIN1 = 0, GAIN0 = 0
+    // Gain 2:  GAIN1 = 0, GAIN0 = 1
+    // Gain 64: GAIN1 = 1, GAIN0 = 0
+    // Gain 128:GAIN1 = 1, GAIN0 = 1
+    switch (gain)
+    {
+        case 1:
+            g1_level = 0;
+            g0_level = 0;
+            break;
+        case 2:
+            g1_level = 0;
+            g0_level = 1;
+            break;
+        case 64:
+            g1_level = 1;
+            g0_level = 0;
+            break;
+        case 128:
+            g1_level = 1;
+            g0_level = 1;
+            break;
+        default:
+            return ESP_ERR_INVALID_ARG;
+    }
+
+    handle->gain = gain;
+    gpio_set_level(handle->gain0_io, g0_level);
+    gpio_set_level(handle->gain1_io, g1_level);
+
+    ESP_LOGI(tag, "ADS1232 ganho alterado para: %lu (GAIN1=%d, GAIN0=%d)", gain, g1_level, g0_level);
+    return ESP_OK;
+}
+
 esp_err_t init_esp_loadcell(esp_loadcell_config_t *config, esp_loadcell_handle_t *handle)
 {
     esp_err_t ret = ESP_OK;
