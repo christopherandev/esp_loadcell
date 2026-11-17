@@ -10,20 +10,20 @@ static const char *tag = "ESP-loadcell";
 
 struct esp_loadcell_t
 {
-    SemaphoreHandle_t ready;
-    gpio_num_t dout;
-    gpio_num_t pd_sck;
-    gpio_num_t speed_io;
-    gpio_num_t gain0_io;
-    gpio_num_t gain1_io;
-    gpio_num_t pdwn_io;
-    gpio_num_t a0_io;
+    SemaphoreHandle_t   ready;
+    gpio_num_t          dout;
+    gpio_num_t          pd_sck;
+    gpio_num_t          speed_io;
+    gpio_num_t          gain0_io;
+    gpio_num_t          gain1_io;
+    gpio_num_t          pdwn_io;
+    gpio_num_t          a0_io;
 
-    uint8_t speed; // 1 --> 80Hz, 0 --> 10Hz
+    uint8_t             speed; // 1 --> 80Hz, 0 --> 10Hz
     loadcell_adc_type_t type;
-    uint32_t gain;
-    ads1232_channel_t channel;
-    bool is_power_down;
+    uint32_t            gain;
+    ads1232_channel_t   channel;
+    bool                is_power_down;
 };
 
 static void IRAM_ATTR wait_loadcell(void *arg)
@@ -49,7 +49,7 @@ esp_err_t esp_loadcell_set_speed(esp_loadcell_handle_t handle, uint8_t speed)
     return ESP_OK;
 }
 
-esp_err_t esp_loadcell_set_gain(esp_loadcell_handle_t handle, uint32_t gain)
+esp_err_t esp_loadcell_set_gain(esp_loadcell_handle_t handle, ads1232_gain_t gain)
 {
     if (handle == NULL)
     {
@@ -64,33 +64,35 @@ esp_err_t esp_loadcell_set_gain(esp_loadcell_handle_t handle, uint32_t gain)
     int g0_level = 0;
     int g1_level = 0;
 
-    switch (gain)
+    switch(gain)
     {
-        case 1:
+        case ADS1232_GAIN_1:
             g1_level = 0;
             g0_level = 0;
+            handle->gain = 1;
             break;
-        case 2:
+        case ADS1232_GAIN_2:
             g1_level = 0;
             g0_level = 1;
+            handle->gain = 2;
             break;
-        case 64:
+        case ADS1232_GAIN_64:
             g1_level = 1;
             g0_level = 0;
+            handle->gain = 64;
             break;
-        case 128:
+        case ADS1232_GAIN_128:
             g1_level = 1;
             g0_level = 1;
+            handle->gain = 128;
             break;
         default:
             return ESP_ERR_INVALID_ARG;
     }
 
-    handle->gain = gain;
     gpio_set_level(handle->gain0_io, g0_level);
     gpio_set_level(handle->gain1_io, g1_level);
 
-    ESP_LOGI(tag, "ADS1232 ganho alterado para: %lu (GAIN1=%d, GAIN0=%d)", gain, g1_level, g0_level);
     return ESP_OK;
 }
 
@@ -182,10 +184,10 @@ esp_err_t init_esp_loadcell(esp_loadcell_config_t *config, esp_loadcell_handle_t
         gpio_set_level(esp_loadcell->pdwn_io, 1);              // Ativado por padrão (PDWN = 1)
 
         int g0_init = 0, g1_init = 0;
-        if (config->gain == 2)  { g1_init = 0; g0_init = 1; }
-        else if (config->gain == 64)  { g1_init = 1; g0_init = 0; }
-        else if (config->gain == 128) { g1_init = 1; g0_init = 1; }
-        else                          { g1_init = 0; g0_init = 0; }
+        if (config->gain == 2)          { g1_init = 0; g0_init = 1; }
+        else if (config->gain == 64)    { g1_init = 1; g0_init = 0; }
+        else if (config->gain == 128)   { g1_init = 1; g0_init = 1; }
+        else                            { g1_init = 0; g0_init = 0; }
 
         gpio_set_level(esp_loadcell->gain0_io, g0_init);
         gpio_set_level(esp_loadcell->gain1_io, g1_init);
